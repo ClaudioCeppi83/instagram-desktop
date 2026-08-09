@@ -1,5 +1,5 @@
 const path = require('path');
-const { BrowserWindow, shell } = require('electron');
+const { BrowserWindow, shell, session } = require('electron');
 const { load_config, save_config } = require('./config');
 
 const DESKTOP_USER_AGENT =
@@ -11,6 +11,19 @@ let is_quitting_app = false;
 
 const set_quitting_flag = (flag_val) => {
 	is_quitting_app = flag_val;
+};
+
+const setup_session_headers = () => {
+	/*
+	 * Configures global session User-Agent and permission handlers
+	 * required for Instagram E2EE Direct Messages.
+	 */
+	const default_sess = session.defaultSession;
+	default_sess.setUserAgent(DESKTOP_USER_AGENT);
+
+	default_sess.setPermissionRequestHandler((wc, permission, callback) => {
+		callback(true);
+	});
 };
 
 const handle_external_link = (target_url) => {
@@ -76,6 +89,7 @@ const create_main_window = () => {
 	/*
 	 * Instantiates the primary Electron window with Instagram webapp.
 	 */
+	setup_session_headers();
 	const cfg = load_config();
 	const icon_path = path.join(__dirname, '..', 'assets', 'icon.png');
 
@@ -91,13 +105,11 @@ const create_main_window = () => {
 			preload: path.join(__dirname, 'preload.js'),
 			nodeIntegration: false,
 			contextIsolation: true,
-			sandbox: true
+			partition: 'persist:instagram'
 		}
 	});
 
-	main_window.loadURL('https://www.instagram.com/', {
-		userAgent: DESKTOP_USER_AGENT
-	});
+	main_window.loadURL('https://www.instagram.com/');
 
 	setup_window_events(main_window);
 	setup_navigation_handlers(main_window);
