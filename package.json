@@ -1,0 +1,22 @@
+{
+	"name": "instagram-desktop",
+	"version": "1.0.0",
+	"description": "Aplicación de escritorio nativa de Instagram para Ubuntu/Linux",
+	"main": "src/main.js",
+	"scripts": {
+		"start": "electron .",
+		"test": "node test/run_tests.js"
+	},
+	"keywords": [
+		"instagram",
+		"electron",
+		"desktop",
+		"ubuntu",
+		"linux"
+	],
+	"author": "erceppi",
+	"license": "MIT",
+	"devDependencies": {
+		"electron": "^31.0.0"
+	}
+}
