@@ -70,6 +70,16 @@ const setup_window_events = (win_obj) => {
 	win_obj.on('move', () => {
 		save_window_bounds(win_obj);
 	});
+
+	win_obj.webContents.on('render-process-gone', (event, details) => {
+		if (details.reason !== 'clean-exit') {
+			win_obj.webContents.reload();
+		}
+	});
+
+	win_obj.webContents.on('unresponsive', () => {
+		win_obj.webContents.reload();
+	});
 };
 
 const setup_navigation_handlers = (win_obj) => {

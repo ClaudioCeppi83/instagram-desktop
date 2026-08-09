@@ -1,12 +1,16 @@
 const { app, ipcMain } = require('electron');
+
+/* Disable GPU hardware acceleration on Linux to prevent process crashes */
+app.disableHardwareAcceleration();
+app.commandLine.appendSwitch('no-sandbox');
+app.commandLine.appendSwitch('disable-gpu');
+app.commandLine.appendSwitch('disable-gpu-sandbox');
+app.commandLine.appendSwitch('disable-software-rasterizer');
+
 const { create_main_window, get_main_window, set_quitting_flag } =
 	require('./window');
 const { create_system_tray, update_tray_tooltip } = require('./tray');
 const { check_for_updates } = require('./updater');
-
-/* Configure Linux electron flags for user environment */
-app.commandLine.appendSwitch('no-sandbox');
-app.commandLine.appendSwitch('disable-gpu-sandbox');
 
 const setup_single_instance = () => {
 	/*
