@@ -1,11 +1,14 @@
 const { app, ipcMain } = require('electron');
 
-/* Disable GPU hardware acceleration on Linux to prevent process crashes */
-app.disableHardwareAcceleration();
+/*
+ * AMD Vega on Linux causes the GPU process to exit unexpectedly.
+ * SwiftShader (software renderer) is the stable fallback used by
+ * many Electron apps (Discord, WhatsApp Desktop) on AMD/Intel Linux.
+ */
 app.commandLine.appendSwitch('no-sandbox');
 app.commandLine.appendSwitch('disable-gpu');
+app.commandLine.appendSwitch('use-gl', 'swiftshader');
 app.commandLine.appendSwitch('disable-gpu-sandbox');
-app.commandLine.appendSwitch('disable-software-rasterizer');
 
 const { create_main_window, get_main_window, set_quitting_flag } =
 	require('./window');

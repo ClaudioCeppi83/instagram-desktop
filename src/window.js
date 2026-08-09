@@ -15,13 +15,15 @@ const set_quitting_flag = (flag_val) => {
 
 const setup_session_headers = () => {
 	/*
-	 * Configures global session User-Agent and permission handlers
-	 * required for Instagram E2EE Direct Messages.
+	 * Sets User-Agent at session level so all requests (XHR, WebSocket,
+	 * Fetch) use a desktop Chrome identity. This is required for
+	 * Instagram E2EE Direct Messages to work correctly.
+	 * Uses defaultSession to preserve existing login cookies.
 	 */
-	const default_sess = session.defaultSession;
-	default_sess.setUserAgent(DESKTOP_USER_AGENT);
+	const sess = session.defaultSession;
+	sess.setUserAgent(DESKTOP_USER_AGENT);
 
-	default_sess.setPermissionRequestHandler((wc, permission, callback) => {
+	sess.setPermissionRequestHandler((wc, permission, callback) => {
 		callback(true);
 	});
 };
@@ -52,7 +54,8 @@ const save_window_bounds = (win_obj) => {
 
 const setup_window_events = (win_obj) => {
 	/*
-	 * Binds close-to-tray, resize, and move listeners.
+	 * Binds close-to-tray, resize, and move listeners,
+	 * plus render-process crash auto-recovery.
 	 */
 	win_obj.on('close', (event) => {
 		if (!is_quitting_app) {
@@ -98,6 +101,7 @@ const setup_navigation_handlers = (win_obj) => {
 const create_main_window = () => {
 	/*
 	 * Instantiates the primary Electron window with Instagram webapp.
+	 * Uses defaultSession (no partition) to preserve existing login cookies.
 	 */
 	setup_session_headers();
 	const cfg = load_config();
@@ -114,8 +118,7 @@ const create_main_window = () => {
 		webPreferences: {
 			preload: path.join(__dirname, 'preload.js'),
 			nodeIntegration: false,
-			contextIsolation: true,
-			partition: 'persist:instagram'
+			contextIsolation: true
 		}
 	});
 
