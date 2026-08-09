@@ -1,14 +1,19 @@
 const { app, ipcMain } = require('electron');
 
 /*
- * AMD Vega on Linux causes the GPU process to exit unexpectedly.
- * SwiftShader (software renderer) is the stable fallback used by
- * many Electron apps (Discord, WhatsApp Desktop) on AMD/Intel Linux.
+ * AMD Vega / Linux: use Vulkan via the bundled SwiftShader ICD
+ * (libvk_swiftshader.so). This avoids the EGL/ANGLE GPU crash while
+ * preserving HTML5 video decode (Stories, Reels) and WebGL (effects).
+ * Full --disable-gpu alone kills video; Vulkan+SwiftShader does not.
  */
 app.commandLine.appendSwitch('no-sandbox');
 app.commandLine.appendSwitch('disable-gpu');
 app.commandLine.appendSwitch('use-gl', 'swiftshader');
 app.commandLine.appendSwitch('disable-gpu-sandbox');
+app.commandLine.appendSwitch(
+	'enable-features',
+	'Vulkan,UseSkiaRenderer'
+);
 
 const { create_main_window, get_main_window, set_quitting_flag } =
 	require('./window');

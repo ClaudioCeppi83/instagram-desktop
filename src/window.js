@@ -6,6 +6,13 @@ const DESKTOP_USER_AGENT =
 	'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 ' +
 	'(KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36';
 
+const INSTAGRAM_ORIGINS = [
+	'instagram.com',
+	'cdninstagram.com',
+	'facebook.com',
+	'fbcdn.net'
+];
+
 let main_window = null;
 let is_quitting_app = false;
 
@@ -13,11 +20,14 @@ const set_quitting_flag = (flag_val) => {
 	is_quitting_app = flag_val;
 };
 
+const is_instagram_url = (url_str) => {
+	return INSTAGRAM_ORIGINS.some((origin) => url_str.includes(origin));
+};
+
 const setup_session_headers = () => {
 	/*
 	 * Sets User-Agent at session level so all requests (XHR, WebSocket,
-	 * Fetch) use a desktop Chrome identity. This is required for
-	 * Instagram E2EE Direct Messages to work correctly.
+	 * Fetch) use a desktop Chrome identity. Required for E2EE DMs.
 	 * Uses defaultSession to preserve existing login cookies.
 	 */
 	const sess = session.defaultSession;
@@ -26,17 +36,6 @@ const setup_session_headers = () => {
 	sess.setPermissionRequestHandler((wc, permission, callback) => {
 		callback(true);
 	});
-};
-
-const handle_external_link = (target_url) => {
-	/*
-	 * Opens external non-instagram links in default Linux web browser.
-	 */
-	if (!target_url.includes('instagram.com')) {
-		shell.openExternal(target_url);
-		return { action: 'deny' };
-	}
-	return { action: 'allow' };
 };
 
 const save_window_bounds = (win_obj) => {
@@ -54,8 +53,7 @@ const save_window_bounds = (win_obj) => {
 
 const setup_window_events = (win_obj) => {
 	/*
-	 * Binds close-to-tray, resize, and move listeners,
-	 * plus render-process crash auto-recovery.
+	 * Binds close-to-tray, resize, move, and crash recovery listeners.
 	 */
 	win_obj.on('close', (event) => {
 		if (!is_quitting_app) {
@@ -85,13 +83,51 @@ const setup_window_events = (win_obj) => {
 	});
 };
 
+const open_instagram_popup = (url) => {
+	/*
+	 * Opens an Instagram popup (story, notification panel) in a
+	 * configured child window with correct User-Agent and session.
+	 */
+	const popup = new BrowserWindow({
+		width: 900,
+		height: 700,
+		autoHideMenuBar: true,
+		webPreferences: {
+			nodeIntegration: false,
+			contextIsolation: true
+		}
+	});
+
+	popup.loadURL(url, { userAgent: DESKTOP_USER_AGENT });
+	popup.webContents.on('will-navigate', (event, nav_url) => {
+		if (!is_instagram_url(nav_url)) {
+			event.preventDefault();
+			shell.openExternal(nav_url);
+		}
+	});
+
+	return popup;
+};
+
 const setup_navigation_handlers = (win_obj) => {
+	/*
+	 * Routes window.open() calls:
+	 * - Instagram URLs  → configured child window
+	 * - External URLs   → system browser
+	 * Routes navigation:
+	 * - External URLs   → system browser
+	 */
 	win_obj.webContents.setWindowOpenHandler(({ url }) => {
-		return handle_external_link(url);
+		if (is_instagram_url(url)) {
+			open_instagram_popup(url);
+		} else {
+			shell.openExternal(url);
+		}
+		return { action: 'deny' };
 	});
 
 	win_obj.webContents.on('will-navigate', (event, url) => {
-		if (!url.includes('instagram.com')) {
+		if (!is_instagram_url(url)) {
 			event.preventDefault();
 			shell.openExternal(url);
 		}
